@@ -1,6 +1,6 @@
 # Macropad-Project-Hackclub
 This project is a fully custom macropad created as part of Hack Club’s Blueprint program. It includes hardware design, firmware development, and key mapping to streamline workflows for coding, media control, and everyday tasks.
-<br/>##Final Design<br/>
+<br/>## Final Design<br/>
 <img width="1041" height="659" alt="Screenshot 2026-03-28 202114" src="https://github.com/user-attachments/assets/accf1616-3320-4444-837d-829e741fc53e" />
 <br/>Schematic (Not the greatest schematic OAT I am aware of, but it works)
 <img width="613" height="592" alt="Screenshot 2026-03-28 202304" src="https://github.com/user-attachments/assets/ea9ad00d-3568-40c4-bbfe-747cd3c99639" />
