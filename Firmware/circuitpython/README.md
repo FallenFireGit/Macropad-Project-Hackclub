@@ -1,109 +1,126 @@
 # KMK firmware
 
-CircuitPython firmware for the macropad, using [KMK](https://github.com/KMKfw/kmk_firmware).
+The CircuitPython firmware running on the macropad. `code.py` here is a copy
+of what is on the board — captured from a working unit, not written from the
+schematic.
 
-KMK was chosen over QMK for one concrete reason: the board mounts as a USB
-drive, so replacing the OLED animation is a file copy. Under QMK, OLED
-graphics compile into the firmware binary, making every animation change a
-regenerate-recompile-reflash cycle.
+Tested on **Adafruit CircuitPython 10.2.1**, Seeeduino XIAO RP2040.
 
 ## Pinout
 
-Traced from `PCB/Macropad_Project.kicad_pcb`, not assumed:
-
-|            | col D2 | col D3 | col D9 |
-| ---------- | ------ | ------ | ------ |
-| **row D0** | SW2    | SW4    | SW1 encoder push |
-| **row D1** | SW3    | SW5    | *(no switch fitted)* |
-
-Switches connect a column to a diode anode; each cathode goes to a row, so
-current flows column → row — `COL2ROW`.
+Matches `PCB/Macropad_Project.kicad_pcb`:
 
 | Function | Pins |
 | --- | --- |
-| Encoder rotation | D8 (A), D7 (B), common → GND |
-| Encoder push | in-matrix, row D0 / col D9, through diode D5 |
-| OLED I²C | D4 = SDA, D5 = SCL, powered from 5V |
+| Matrix rows | D0, D1 |
+| Matrix columns | D2, D3 |
+| Encoder rotation | D8 (A), D7 (B) |
+| Encoder push | D9 strobed against row D0 |
+| OLED I²C | `board.I2C()` — D4 = SDA, D5 = SCL, address `0x3C` |
 
-The encoder's push switch being part of the matrix is why `encoders.pins`
-passes `None` for its button pin.
+Diode orientation is `COL2ROW`.
 
-## Installing
+### Why the encoder button is handled by hand
 
-1. Flash CircuitPython for the **Seeed XIAO RP2040** from
-   [circuitpython.org](https://circuitpython.org/board/seeeduino_xiao_rp2040/):
-   double-tap reset to get `RPI-RP2`, drop the `.uf2` on, wait for
-   `CIRCUITPY` to appear.
-2. Copy [KMK](https://github.com/KMKfw/kmk_firmware) so `CIRCUITPY/kmk/`
-   exists.
-3. Copy `code.py` and `oled_animation.py` to the root of `CIRCUITPY`.
-4. For the OLED, add to `CIRCUITPY/lib/`:
-   - `adafruit_displayio_ssd1306.mpy`
-   - `adafruit_imageload/`
+The encoder's push switch sits in the matrix at row D0 / column D9, but D9 is
+**not** passed to `MatrixScanner`. Instead `SmartSystem._read_button()`
+strobes it directly:
 
-   Both are in the [Adafruit CircuitPython bundle](https://circuitpython.org/libraries).
-
-The drive layout when finished:
-
-```
-CIRCUITPY/
-├── code.py
-├── oled_animation.py
-├── anim.bmp          <- from Tools/oled_studio.py
-├── kmk/
-└── lib/
-    ├── adafruit_displayio_ssd1306.mpy
-    └── adafruit_imageload/
+```python
+self.row0_pin.switch_to_input(pull=digitalio.Pull.UP)
+self.d9.value = False
+pressed = not self.row0_pin.value
+self.d9.value = True
+self.row0_pin.switch_to_output(value=True)
 ```
 
-## Default keymap
+That keeps the button out of the keymap so it can drive the menu system —
+single click and double click mean different things depending on state,
+which a plain keycode could not express.
+
+## Key layout
 
 ```
         [encoder]   [SW2]
     [SW3]   [SW4]   [SW5]
 ```
 
-| Key | Layer 0 (media) | Layer 1 (editing) |
-| --- | --- | --- |
-| Encoder push | Mute | Ctrl+S |
-| SW2 | Play / pause | Ctrl+Z |
-| SW3 | Previous track | Ctrl+C |
-| SW4 | Next track | Ctrl+V |
-| SW5 | *hold for layer 1* | — |
-| Encoder turn | Volume | Page up / down |
+Scan order is row-major over rows × columns, and `coord_mapping = [0, 1, 2, 3]`
+keeps it as-is:
 
-Edit `keyboard.keymap` in `code.py` and save; the board reloads on its own.
+| Index | Row/Col | Switch | Layer 0 "Programming" | Layer 1 "CAD" |
+| --- | --- | --- | --- | --- |
+| 0 | D0/D2 | SW2 (top middle) | `UP` | Ctrl+Z undo |
+| 1 | D0/D3 | SW4 (bottom middle) | `DOWN` | Ctrl+Y redo |
+| 2 | D1/D2 | SW3 (bottom left) | `LEFT` | `ESC` |
+| 3 | D1/D3 | SW5 (bottom right) | `RIGHT` | `ENTER` |
 
-## Enabling the animation
+## Encoder and menu
 
-Add to `code.py`:
+| Action | Effect |
+| --- | --- |
+| Turn | Volume up / down (navigates when a menu is open) |
+| Single click | Play / pause |
+| Double click | Open the menu |
 
-```python
-from oled_animation import OledAnimation
+Menu options: **Choose Layer**, **Start Pomodoro** (25 minutes), **Toggle
+USB** (shows `[USB]` or `[PWR]`), **Exit**. Turn to move, click to select.
 
-keyboard.extensions.append(
-    OledAnimation(path="/anim.bmp", frame_width=32, frame_height=32, fps=12)
-)
+While the menu, Pomodoro timer, or layer picker is showing, the display
+swaps the animation out for text and back again when it returns to normal.
+
+## Display
+
+`displayio.OnDiskBitmap` streams `anim.bmp` from the drive rather than
+loading it into RAM — worth it on a board with about 600 KB free. A strict
+two-colour palette is forced on top, which is what fixed the all-black
+screen.
+
+The sprite is 32×32 drawn at `x = 48`, centred on the 128×32 panel, and
+advances every 42 ms.
+
+If `anim.bmp` is missing, the firmware falls back to an ASCII blink
+animation rather than failing to boot.
+
+## Changing the animation
+
+Use `Tools/oled_studio.py` — open a GIF, tune the preview, press **Send to
+macropad**. It writes exactly the format this firmware expects: 1-bit,
+bottom-up, 32×32 frames stacked vertically.
+
+That compatibility is verified rather than assumed. The `anim.bmp` committed
+here is the file running on the board, and it is byte-identical to what OLED
+Studio produces — same SHA-256.
+
+## Installing on a fresh board
+
+1. Flash CircuitPython for the **Seeed XIAO RP2040** from
+   [circuitpython.org](https://circuitpython.org/board/seeeduino_xiao_rp2040/).
+   Double-tap reset for `RPI-RP2`, drop the `.uf2` on, wait for `CIRCUITPY`.
+2. Copy `code.py` and `anim.bmp` to the root of the drive.
+3. Populate `lib/` exactly as the board has it:
+
+```
+CIRCUITPY/
+├── code.py
+├── anim.bmp
+└── lib/
+    ├── kmk/                          <- KMK firmware, note: inside lib/
+    ├── adafruit_bus_device/
+    ├── adafruit_display_text/
+    ├── adafruit_displayio_ssd1306.mpy
+    └── adafruit_ticks.mpy
 ```
 
-Then generate `anim.bmp` with `Tools/oled_studio.py` and copy it to the
-drive root.
+`kmk/` goes **inside `lib/`**, not at the drive root.
 
-Frames advance on a deadline check inside `before_matrix_scan`, never a
-sleep, so key scanning stays responsive. A missing display or missing file
-is caught and recorded in `.error` rather than raised — the macropad is a
-keyboard first, and an unplugged OLED should not stop it typing.
+No `adafruit_imageload` is needed — `displayio.OnDiskBitmap` is built into
+CircuitPython.
 
-## If keys land in the wrong place
+## Housekeeping
 
-Run `Firmware/tools/pin_probe.py` to see what each switch actually bridges,
-then adjust `keyboard.coord_mapping`. Scan order is row-major over
-`row_pins` × `col_pins`:
+The drive is only about 1 MB. Worth keeping off it:
 
-```
-0 = D0/D2   1 = D0/D3   2 = D0/D9
-3 = D1/D2   4 = D1/D3   5 = D1/D9  (excluded, no switch)
-```
-
-`coord_mapping = [2, 0, 3, 1, 4]` reorders those into the keymap order
-above.
+- `.idea/` — JetBrains project metadata, roughly 13 KB, written there if the
+  board is opened as a project folder
+- `sd/placeholder.txt` — unused
