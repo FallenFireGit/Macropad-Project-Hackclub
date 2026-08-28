@@ -12,7 +12,7 @@ This project is a fully custom macropad created as part of Hack Club’s Bluepri
 
 <br/>
 
-### Schematic (Not the greatest schematic OAT, but it works)
+## Schematic (Not the greatest schematic OAT, but it works)
 
 <br/>
 
@@ -20,7 +20,7 @@ This project is a fully custom macropad created as part of Hack Club’s Bluepri
 
 <br/>
 
-#### PCB
+## PCB
 
 <br/>
 
@@ -28,7 +28,7 @@ This project is a fully custom macropad created as part of Hack Club’s Bluepri
 
 <br/>
 
-##### Exploded View 
+## Exploded View
 
 Do note that the PCB is connected to the plate via an M2 screw (needed to be small to fit between switches), which screws into the plastic on the bottom plate. Since the switches are soldered to the PCB, the top plate is secured by being sandwiched between the MX switches and then the bottom plate. (The little red part for the OLED is held together with friction with the pins on the OLED. Once I actually get it, I will superglue it or use AMS in later revisions.)
 
@@ -38,7 +38,7 @@ Do note that the PCB is connected to the plate via an M2 screw (needed to be sma
 
 <br/>
 
-###### BOM
+## BOM
 
 * 1x SEEEDUINO XIAO RP2040
 * 4x MX Cherry Style switches
