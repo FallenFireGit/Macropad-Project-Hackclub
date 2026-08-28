@@ -6,6 +6,12 @@ schematic.
 
 Tested on **Adafruit CircuitPython 10.2.1**, Seeeduino XIAO RP2040.
 
+**Maintainer:** [Conner Hopkins](https://github.com/FallenFireGit)
+**Hardware:** Seeed XIAO RP2040, 4x MX switches, EC11 rotary encoder, 0.91"
+SSD1306 OLED
+**Parts:** [Seeed Studio](https://www.seeedstudio.com/),
+[Mechanical Keyboards](https://mechanicalkeyboards.com/)
+
 ## Pinout
 
 Matches `PCB/Macropad_Project.kicad_pcb`:
