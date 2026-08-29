@@ -47,3 +47,58 @@ Do note that the PCB is connected to the plate via an M2 screw (needed to be sma
 * 1x 0.91-inch OLED display
 * 5x 1N4148 diodes
 * 1x M2 Screw
+
+## Firmware
+
+The macropad runs [KMK](https://github.com/KMKfw/kmk_firmware) on CircuitPython. The board mounts as a USB drive, so edits take effect on save -- no toolchain, no compiling, no reflashing.
+
+Four MX switches across two layers:
+
+| Switch | Programming | CAD |
+| --- | --- | --- |
+| Top middle | `UP` | Ctrl+Z undo |
+| Bottom middle | `DOWN` | Ctrl+Y redo |
+| Bottom left | `LEFT` | `ESC` |
+| Bottom right | `RIGHT` | `ENTER` |
+
+The rotary encoder does triple duty:
+
+| Encoder | Action |
+| --- | --- |
+| Turn | Volume, or menu navigation when a menu is open |
+| Single click | Play / pause |
+| Double click | Open the menu |
+
+The menu holds a layer picker, a 25-minute Pomodoro timer, and a USB power indicator. Whenever nothing else needs the screen, the OLED loops a fire animation.
+
+Pinout, install steps, and how to remap keys: [Firmware/circuitpython/README.md](Firmware/circuitpython/README.md)
+
+<br/>
+
+## Changing the OLED animation
+
+[OLED Studio](Tools/README.md) turns any GIF or image into the format the display reads and copies it onto the board:
+
+```bash
+python Tools/oled_studio.py
+```
+
+Open a GIF, drag the threshold slider until the live preview looks right, then press **Send to macropad**. There is a command-line mode for scripting:
+
+```bash
+python Tools/oled_studio.py fire.gif --size 32x32 --dither --send
+```
+
+Needs Python 3.10+ and Pillow (`pip install pillow`).
+
+<br/>
+
+## Repository layout
+
+| Path | Contents |
+| --- | --- |
+| `PCB/` | KiCad schematic and board layout |
+| `CAD/` | Case model |
+| `Production/` | Gerbers and printable plates |
+| `Firmware/circuitpython/` | The firmware running on the board, and its animation |
+| `Tools/` | OLED Studio, the animation uploader |
